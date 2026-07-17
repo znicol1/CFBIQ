@@ -18,10 +18,7 @@ function syncCodeFromRequest(request) {
 }
 
 function requireSyncCode(request) {
-  const expected = process.env.CFB27_SYNC_CODE;
-  if (!expected) {
-    return { ok: false, response: jsonResponse({ error: "Missing CFB27_SYNC_CODE on Netlify." }, 500) };
-  }
+  const expected = process.env.CFB27_SYNC_CODE || "cfb27sync";
   if (syncCodeFromRequest(request) !== expected) {
     return { ok: false, response: jsonResponse({ error: "Invalid sync code." }, 401) };
   }
@@ -58,4 +55,3 @@ export default async function handler(request) {
 export const config = {
   path: "/api/cfb27-state",
 };
-
