@@ -1,6 +1,9 @@
 const STORAGE_KEY = "cfb27-team-selection-v1";
 const SYNC_CODE_KEY = `${STORAGE_KEY}-sync-code`;
+const SYNC_UPDATED_KEY = `${STORAGE_KEY}-cloud-updated-at`;
 const CLOUD_SYNC_ENDPOINT = "/api/cfb27-state";
+const CLOUD_SYNC_POLL_MS = 10000;
+const DEFAULT_SYNC_CODE = "cfb27sync";
 const SLOT_WEIGHTS = {
   qb1: 14,
   rb1: 7,
@@ -268,7 +271,7 @@ const NDL_WIN_GOALS = {
   "Sam Houston Bearkats": "2.5",
   "Southern Miss Golden Eagles": "2",
   "Northern Illinois Huskies": "2",
-  "UL–Monroe Warhawks": "2",
+  "ULâ€“Monroe Warhawks": "2",
 };
 const DEFAULT_PLAY_BY_ID = new Map(DEFAULT_PLAYS.map((play) => [play.id, play]));
 const DEFAULT_PLAY_BY_NAME = new Map(DEFAULT_PLAYS.map((play) => [`${play.formation}:::${play.play}`.toLowerCase(), play]));
@@ -324,6 +327,8 @@ let selectedSituationPlayId = null;
 let selectedPairPlayId = null;
 let pairSearchQuery = "";
 let syncSaveTimer = null;
+let syncPollTimer = null;
+let hasPendingCloudSave = false;
 let isApplyingRemoteState = false;
 let syncStatus = "";
 let syncStatusTone = "";
@@ -545,7 +550,24 @@ function saveState() {
 }
 
 function syncCode() {
-  return localStorage.getItem(SYNC_CODE_KEY) || "";
+  return localStorage.getItem(SYNC_CODE_KEY) || DEFAULT_SYNC_CODE;
+}
+
+function lastCloudUpdatedAt() {
+  return localStorage.getItem(SYNC_UPDATED_KEY) || "";
+}
+
+function setLastCloudUpdatedAt(updatedAt) {
+  if (updatedAt) localStorage.setItem(SYNC_UPDATED_KEY, updatedAt);
+}
+
+function isNewerCloudSave(updatedAt) {
+  if (!updatedAt) return false;
+  const current = Date.parse(lastCloudUpdatedAt());
+  const next = Date.parse(updatedAt);
+  if (!Number.isFinite(next)) return updatedAt !== lastCloudUpdatedAt();
+  if (!Number.isFinite(current)) return true;
+  return next > current;
 }
 
 function setSyncStatus(message, tone = "") {
@@ -561,11 +583,12 @@ function setSyncStatus(message, tone = "") {
 function refreshSyncControls() {
   const input = document.getElementById("syncCodeInput");
   if (input && document.activeElement !== input) input.value = syncCode();
-  setSyncStatus(syncStatus || (syncCode() ? "Cloud sync connected" : "Local only"), syncStatusTone);
+  setSyncStatus(syncStatus || (syncCode() ? "Auto sync on" : "Local only"), syncStatusTone);
 }
 
 function scheduleCloudSave() {
   if (isApplyingRemoteState || !syncCode()) return;
+  hasPendingCloudSave = true;
   clearTimeout(syncSaveTimer);
   syncSaveTimer = setTimeout(() => {
     pushCloudState({ quiet: true }).catch((error) => setSyncStatus(error.message, "bad"));
@@ -602,13 +625,47 @@ async function pullCloudState() {
   saveState();
   isApplyingRemoteState = false;
   render();
+  setLastCloudUpdatedAt(payload.updatedAt);
   setSyncStatus(`Pulled cloud save ${payload.updatedAt ? new Date(payload.updatedAt).toLocaleString() : ""}`, "good");
 }
 
 async function pushCloudState(options = {}) {
   if (!options.quiet) setSyncStatus("Pushing cloud state...");
   const payload = await cloudStateRequest("PUT", { state });
-  setSyncStatus(`Cloud saved ${payload.updatedAt ? new Date(payload.updatedAt).toLocaleTimeString() : ""}`, "good");
+  hasPendingCloudSave = false;
+  setLastCloudUpdatedAt(payload.updatedAt);
+  setSyncStatus(`Auto synced ${payload.updatedAt ? new Date(payload.updatedAt).toLocaleTimeString() : ""}`, "good");
+}
+
+async function checkCloudState(options = {}) {
+  if (!syncCode() || isApplyingRemoteState || hasPendingCloudSave) return;
+  const payload = await cloudStateRequest("GET");
+  if (!payload.state) {
+    if (options.pushIfEmpty) await pushCloudState({ quiet: true });
+    return;
+  }
+  if (!options.force && !isNewerCloudSave(payload.updatedAt)) return;
+  isApplyingRemoteState = true;
+  try {
+    state = normalizeState(payload.state);
+    activeLeague = state.activeLeague || "ndl";
+    activeView = state.activeView || "draft";
+    saveState();
+  } finally {
+    isApplyingRemoteState = false;
+  }
+  setLastCloudUpdatedAt(payload.updatedAt);
+  render();
+  setSyncStatus(`Auto pulled ${payload.updatedAt ? new Date(payload.updatedAt).toLocaleTimeString() : ""}`, "good");
+}
+
+function startAutoCloudSync(options = {}) {
+  clearInterval(syncPollTimer);
+  if (!syncCode()) return;
+  checkCloudState(options).catch((error) => setSyncStatus(error.message, "bad"));
+  syncPollTimer = setInterval(() => {
+    checkCloudState().catch((error) => setSyncStatus(error.message, "bad"));
+  }, CLOUD_SYNC_POLL_MS);
 }
 
 function leagueTeam(teamId) {
@@ -2943,11 +3000,14 @@ document.getElementById("saveSyncCode")?.addEventListener("click", () => {
   const code = input?.value.trim() || "";
   if (!code) {
     localStorage.removeItem(SYNC_CODE_KEY);
+    localStorage.removeItem(SYNC_UPDATED_KEY);
+    clearInterval(syncPollTimer);
     setSyncStatus("Local only");
     return;
   }
   localStorage.setItem(SYNC_CODE_KEY, code);
-  setSyncStatus("Cloud sync connected", "good");
+  setSyncStatus("Auto sync on", "good");
+  startAutoCloudSync({ force: true, pushIfEmpty: true });
 });
 
 document.getElementById("pullCloudState")?.addEventListener("click", () => {
@@ -3017,4 +3077,6 @@ els.dialogBody.addEventListener("change", (event) => {
 });
 
 render();
+refreshSyncControls();
+startAutoCloudSync();
 
