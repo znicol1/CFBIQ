@@ -750,19 +750,29 @@ tr:hover td {
 }
 
 .favorite-button {
-  width: 34px;
-  height: 34px;
-  border: 1px solid var(--line);
-  color: #9b8aa9;
-  background: white;
-  font-size: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid transparent;
+  color: #b5a8c0;
+  background: transparent;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 25px;
+  font-weight: 900;
   line-height: 1;
 }
 
-.favorite-button.active {
-  border-color: rgba(200, 150, 44, 0.55);
+.favorite-button:hover {
+  border-color: rgba(200, 150, 44, 0.35);
   color: var(--gold);
-  background: #fff7dd;
+  background: #fff9e8;
+}
+
+.favorite-button.active {
+  color: var(--gold);
+  text-shadow: 0 1px 0 rgba(75, 49, 0, 0.18);
 }
 
 .favorite-team-row td {
@@ -771,12 +781,14 @@ tr:hover td {
 
 .conference-cell {
   min-width: 92px;
+  text-align: center;
 }
 
 .conference-logo {
   display: block;
-  max-width: 76px;
-  height: 28px;
+  width: 86px;
+  height: 30px;
+  margin: 0 auto;
   object-fit: contain;
 }
 
@@ -1995,10 +2007,12 @@ select.bonus-notable {
   }
 
   .app-nav {
-    position: sticky;
-    top: 0;
+    position: static;
     z-index: 5;
     gap: 10px;
+    min-height: auto;
+    max-height: none;
+    overflow: visible;
     padding: 12px;
     border-radius: 8px;
     box-shadow: 0 12px 26px rgba(35, 22, 54, 0.18);
@@ -2011,8 +2025,8 @@ select.bonus-notable {
   .nav-section,
   .league-nav-section {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 7px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
   }
 
   .nav-section-label {
@@ -2020,9 +2034,13 @@ select.bonus-notable {
   }
 
   .app-nav button {
-    min-height: 40px;
-    padding: 8px 9px;
-    font-size: 12px;
+    min-height: 36px;
+    padding: 7px 8px;
+    font-size: 11px;
+  }
+
+  .nav-icon {
+    display: none;
   }
 
   .nav-transfer {
@@ -2126,11 +2144,13 @@ select.bonus-notable {
   .favorite-button {
     width: 42px;
     height: 38px;
+    justify-self: start;
   }
 
   .conference-logo {
-    max-width: 92px;
+    width: 96px;
     height: 30px;
+    margin: 0;
   }
 
   .board-small-input {
