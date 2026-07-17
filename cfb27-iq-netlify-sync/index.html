@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CFB27 Team Selection Board</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">College Football 27</p>
+        <h1>Team Selection Board</h1>
+      </div>
+    </header>
+
+    <main class="shell app-shell">
+      <aside class="app-nav" aria-label="Main navigation">
+        <div class="nav-title">
+          <span>Workspace</span>
+          <strong>CFB27 IQ</strong>
+        </div>
+
+        <nav class="nav-section" aria-label="Playbook materials">
+          <div class="nav-section-label">Playbook Materials</div>
+          <button class="nav-item" data-playbook-mode-button="generator" type="button"><span class="nav-icon">G</span>Playbook Generator</button>
+          <button class="nav-item" data-playbook-mode-button="live" type="button"><span class="nav-icon">L</span>Live Playbook</button>
+          <button class="nav-item" data-playbook-mode-button="gameday" type="button"><span class="nav-icon">D</span>Gameday View</button>
+          <button class="nav-item" data-playbook-mode-button="favoriteUpdate" type="button"><span class="nav-icon">F</span>Favorite Update</button>
+          <button class="nav-item" data-playbook-mode-button="practice" type="button"><span class="nav-icon">P</span>Practice Plays</button>
+          <button class="nav-item" data-playbook-mode-button="history" type="button"><span class="nav-icon">H</span>Recent Adds</button>
+          <button class="nav-item" data-playbook-mode-button="ranking" type="button"><span class="nav-icon">R</span>Play Ranking</button>
+          <button class="nav-item" data-playbook-mode-button="list" type="button"><span class="nav-icon">A</span>All Plays</button>
+        </nav>
+
+        <div class="nav-section league-nav-section">
+          <div class="nav-section-label">League Draft Boards</div>
+          <button class="nav-item nav-sub" data-league-button="ndl" type="button"><span class="nav-icon">N</span>NDL</button>
+          <button class="nav-item nav-sub" data-league-button="z" type="button"><span class="nav-icon">Z</span>Z League</button>
+        </div>
+
+        <div class="nav-transfer">
+          <div class="nav-section-label">Transfer</div>
+          <button class="ghost" id="exportBackup" type="button">Export Backup</button>
+          <button class="ghost" id="importBackupButton" type="button">Import Backup</button>
+          <input class="hidden" id="importBackupInput" type="file" accept="application/json,.json" />
+          <div class="sync-panel">
+            <div class="nav-section-label">Cloud Sync</div>
+            <input id="syncCodeInput" type="password" placeholder="Sync code" autocomplete="current-password" />
+            <div class="sync-actions">
+              <button class="ghost" id="saveSyncCode" type="button">Connect</button>
+              <button class="ghost" id="pullCloudState" type="button">Pull Cloud</button>
+              <button class="ghost" id="pushCloudState" type="button">Push Cloud</button>
+            </div>
+            <div class="sync-status" id="syncStatus">Local only</div>
+          </div>
+        </div>
+        <div class="nav-drafted" id="navDrafted"></div>
+      </aside>
+      <div class="app-content">
+      <section class="workspace" id="draftView">
+        <aside class="side-panel" id="leaguePanel"></aside>
+        <section class="board-area" aria-label="Draft board">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th><button data-sort-header="manual">Rank</button></th>
+                  <th><button data-sort-header="team">Team</button></th>
+                  <th><button data-sort-header="available">Avail</button></th>
+                  <th><button data-sort-header="conference">Conf</button></th>
+                  <th><button data-sort-header="tier">Tier</button></th>
+                  <th><button data-sort-header="overall">OVR</button></th>
+                  <th><button data-sort-header="offense">OFF</button></th>
+                  <th><button data-sort-header="defense">DEF</button></th>
+                  <th><button data-sort-header="talent">Talent</button></th>
+                  <th><button data-sort-header="zRating">Z Rating</button></th>
+                  <th class="ndl-board-col hidden"><button data-sort-header="ndlRiskRating">NDL Risk</button></th>
+                  <th class="ndl-board-col hidden"><button data-sort-header="ndlWinGoal">Win Goal</button></th>
+                  <th id="leagueBonusHeader"><button data-sort-header="teamBonus">Team Bonus</button></th>
+                  <th>Board</th>
+                </tr>
+              </thead>
+              <tbody id="teamRows"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+      <section class="playbook-view hidden" id="playbookView">
+        <aside class="side-panel" id="playbookPanel"></aside>
+        <section class="playbook-board" aria-label="Custom playbook generator">
+          <div class="playbook-toolbar">
+            <input id="playbookSearch" type="search" placeholder="Search formation, play, concepts, notes" />
+            <select id="playbookSort">
+              <option value="setSlot">Set / Slot View</option>
+              <option value="formation">Formation</option>
+              <option value="play">Play</option>
+              <option value="concepts">Concepts</option>
+              <option value="preSnap">Pre-Snap</option>
+              <option value="mainRead">Main Read</option>
+              <option value="zRating">Z Rating</option>
+              <option value="set">Set</option>
+              <option value="slot">Slot</option>
+            </select>
+            <select id="playbookDirection">
+              <option value="asc">A-Z / Low-High</option>
+              <option value="desc">Z-A / High-Low</option>
+            </select>
+            <button class="primary" id="addPlay">Add Play</button>
+            <select class="hidden" id="playbookMode" aria-label="Playbook view">
+              <option value="generator">Playbook Generator</option>
+              <option value="live">Live Playbook</option>
+              <option value="gameday">Gameday View</option>
+              <option value="favoriteUpdate">Favorite Update</option>
+              <option value="practice">Practice Plays</option>
+              <option value="history">Recent Adds</option>
+              <option value="ranking">Play Ranking</option>
+              <option value="list">Play List</option>
+            </select>
+            <div class="bulk-play-actions hidden" id="bulkPlayActions">
+              <span>Mark All as</span>
+              <select id="bulkPlayStatus" aria-label="Bulk play status">
+                <option value="addedToBook">Book</option>
+                <option value="addedToFavs">Favs</option>
+              </select>
+              <button class="ghost" id="bulkMarkPlays" type="button">Apply</button>
+            </div>
+            <button class="primary" id="generatePlaybook">Preview Ranked Plays</button>
+            <button class="ghost" id="applyGenerator">Build Live Playbook</button>
+            <button class="ghost" id="exportPlaybook">Download Playbook CSV</button>
+          </div>
+          <div class="ranking-panel hidden" id="rankingPanel"></div>
+          <div class="generator-beta hidden" id="generatorBeta"></div>
+          <div class="playbook-sets" id="playbookSets"></div>
+          <datalist id="conceptOptions"></datalist>
+        </section>
+      </section>
+      </div>
+      <datalist id="teamOptions"></datalist>
+    </main>
+
+    <dialog id="teamDialog">
+      <form method="dialog" class="dialog-card">
+        <div class="dialog-head">
+          <div>
+            <p class="eyebrow" id="dialogConference">--</p>
+            <h2 id="dialogTitle">Team</h2>
+          </div>
+          <button value="close" class="ghost">Close</button>
+        </div>
+        <div id="dialogBody"></div>
+      </form>
+    </dialog>
+
+    <dialog id="situationDialog">
+      <form method="dialog" class="dialog-card situation-dialog-card">
+        <div class="dialog-head">
+          <div>
+            <p class="eyebrow" id="situationFormation">Formation</p>
+            <h2 id="situationTitle">Play</h2>
+          </div>
+          <button value="close" class="ghost">Close</button>
+        </div>
+        <div class="situation-actions">
+          <button type="button" class="primary" id="suggestSituations">Suggest Situations</button>
+        </div>
+        <div id="situationBody"></div>
+      </form>
+    </dialog>
+
+    <dialog id="pairDialog">
+      <form method="dialog" class="dialog-card pair-dialog-card">
+        <div class="dialog-head">
+          <div>
+            <p class="eyebrow" id="pairFormation">Formation</p>
+            <h2 id="pairTitle">Play</h2>
+          </div>
+          <button value="close" class="ghost">Close</button>
+        </div>
+        <div id="pairBody"></div>
+      </form>
+    </dialog>
+
+    <script src="./cfb27-data.js"></script>
+    <script src="./playbook-data.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
