@@ -5,6 +5,18 @@ const SYNC_LOCAL_EDIT_KEY = `${STORAGE_KEY}-local-edit-at`;
 const CLOUD_SYNC_ENDPOINT = "/api/cfb27-state";
 const CLOUD_SYNC_POLL_MS = 10000;
 const DEFAULT_SYNC_CODE = "cfb27sync";
+const CONFERENCE_LOGOS = {
+  ACC: "https://commons.wikimedia.org/wiki/Special:FilePath/Atlantic_Coast_Conference_logo.svg",
+  American: "https://commons.wikimedia.org/wiki/Special:FilePath/American_Athletic_Conference_logo.svg",
+  "Big 12": "https://commons.wikimedia.org/wiki/Special:FilePath/Big_12_Conference_(cropped)_logo.svg",
+  "Big Ten": "https://commons.wikimedia.org/wiki/Special:FilePath/Big_Ten_Conference_logo.svg",
+  CUSA: "https://commons.wikimedia.org/wiki/Special:FilePath/CUSA_logo.svg",
+  MAC: "https://commons.wikimedia.org/wiki/Special:FilePath/Mid-American_Conference_logo.svg",
+  "Mountain West": "https://commons.wikimedia.org/wiki/Special:FilePath/Mountain_West_Conference_logo.svg",
+  "Pac-12": "https://commons.wikimedia.org/wiki/Special:FilePath/Pac-12_wordmark.svg",
+  SEC: "https://commons.wikimedia.org/wiki/Special:FilePath/Southeastern_Conference_logo.svg",
+  "Sun Belt": "https://commons.wikimedia.org/wiki/Special:FilePath/Sun_Belt_Conference_2020_logo_and_name.svg",
+};
 const SLOT_WEIGHTS = {
   qb1: 14,
   rb1: 7,
@@ -331,6 +343,7 @@ let syncSaveTimer = null;
 let syncPollTimer = null;
 let hasPendingCloudSave = false;
 let isApplyingRemoteState = false;
+let hasBooted = false;
 let syncStatus = "";
 let syncStatusTone = "";
 
@@ -345,6 +358,7 @@ function loadState() {
     leagues: { z: {}, ndl: {} },
     draftedTeams: { z: [], ndl: [] },
     heldTeams: { z: [], ndl: [] },
+    ndlFavorites: [],
     sharedTeams: {},
     boardOrder: { z: teams.map((t) => t.id), ndl: teams.map((t) => t.id) },
     zUsers: [],
@@ -369,6 +383,8 @@ function normalizeState(nextState) {
   if (!nextState.heldTeams) nextState.heldTeams = { z: [], ndl: [] };
   if (!Array.isArray(nextState.heldTeams.z)) nextState.heldTeams.z = [];
   if (!Array.isArray(nextState.heldTeams.ndl)) nextState.heldTeams.ndl = [];
+  if (!Array.isArray(nextState.ndlFavorites)) nextState.ndlFavorites = [];
+  nextState.ndlFavorites = [...new Set(nextState.ndlFavorites)].filter((id) => teams.some((team) => team.id === id));
   if (!nextState.ndlHeldMigrationComplete && nextState.draftedTeams.ndl.length) {
     nextState.heldTeams.ndl = [...new Set([...nextState.heldTeams.ndl, ...nextState.draftedTeams.ndl])];
     nextState.draftedTeams.ndl = [];
@@ -546,8 +562,9 @@ function normalizeSituations(situations) {
 function saveState() {
   state.activeLeague = activeLeague;
   state.activeView = activeView;
-  if (!isApplyingRemoteState) markLocalEdited();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  if (!hasBooted) return;
+  if (!isApplyingRemoteState) markLocalEdited();
   scheduleCloudSave();
 }
 
@@ -604,7 +621,7 @@ function setSyncStatus(message, tone = "") {
 function refreshSyncControls() {
   const input = document.getElementById("syncCodeInput");
   if (input && document.activeElement !== input) input.value = syncCode();
-  setSyncStatus(syncStatus || (syncCode() ? "Auto sync on" : "Local only"), syncStatusTone);
+  setSyncStatus(syncStatus || (syncCode() ? "Sync on: saves now, refresh pulls" : "Local only"), syncStatusTone);
 }
 
 function scheduleCloudSave() {
@@ -656,7 +673,7 @@ async function pushCloudState(options = {}) {
   hasPendingCloudSave = false;
   setLastCloudUpdatedAt(payload.updatedAt);
   clearLocalEdited();
-  setSyncStatus(`Auto synced ${payload.updatedAt ? new Date(payload.updatedAt).toLocaleTimeString() : ""}`, "good");
+  setSyncStatus(`Saved to cloud ${payload.updatedAt ? new Date(payload.updatedAt).toLocaleTimeString() : ""}`, "good");
 }
 
 async function checkCloudState(options = {}) {
@@ -682,16 +699,14 @@ async function checkCloudState(options = {}) {
   }
   setLastCloudUpdatedAt(payload.updatedAt);
   render();
-  setSyncStatus(`Auto pulled ${payload.updatedAt ? new Date(payload.updatedAt).toLocaleTimeString() : ""}`, "good");
+  setSyncStatus(`Pulled cloud on refresh ${payload.updatedAt ? new Date(payload.updatedAt).toLocaleTimeString() : ""}`, "good");
 }
 
 function startAutoCloudSync(options = {}) {
   clearInterval(syncPollTimer);
   if (!syncCode()) return;
+  if (!hasBooted) clearLocalEdited();
   checkCloudState(options).catch((error) => setSyncStatus(error.message, "bad"));
-  syncPollTimer = setInterval(() => {
-    checkCloudState().catch((error) => setSyncStatus(error.message, "bad"));
-  }, CLOUD_SYNC_POLL_MS);
 }
 
 function leagueTeam(teamId) {
@@ -831,6 +846,24 @@ function ratingStyle(value) {
   return `style="background-color: rgba(22, 122, 74, ${alpha.toFixed(3)});"`;
 }
 
+function lowerIsBetterStyle(value, range) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || range.min === null || range.max === null || range.min === range.max) return "";
+  const midpoint = (range.min + range.max) / 2;
+  if (number <= midpoint) {
+    const alpha = 0.08 + ((midpoint - number) / (midpoint - range.min || 1)) * 0.22;
+    return `style="background-color: rgba(22, 122, 74, ${Math.min(alpha, 0.3).toFixed(3)});"`;
+  }
+  const alpha = 0.08 + ((number - midpoint) / (range.max - midpoint || 1)) * 0.22;
+  return `style="background-color: rgba(174, 48, 48, ${Math.min(alpha, 0.3).toFixed(3)});"`;
+}
+
+function fixedBoardNumber(value, style = "") {
+  const number = Number(value);
+  const display = Number.isFinite(number) ? number : "--";
+  return `<span class="board-fixed-number" ${style}>${escapeHtml(display)}</span>`;
+}
+
 function clampPlayRating(value) {
   const rating = Number(value);
   if (!Number.isFinite(rating)) return 3;
@@ -908,6 +941,22 @@ function bonusClass(value) {
 
 function teamTier(team) {
   return sharedTeam(team.id).conferenceTier || team.conferenceTier;
+}
+
+function conferenceLogo(conference) {
+  const logo = CONFERENCE_LOGOS[conference];
+  if (!logo) return `<span class="conference-badge conference-independent" title="${escapeHtml(conference)}">IND</span>`;
+  return `<img class="conference-logo" src="${escapeHtml(logo)}" alt="${escapeHtml(conference)}" title="${escapeHtml(conference)}" loading="lazy" />`;
+}
+
+function isNdlFavorite(teamId) {
+  return (state.ndlFavorites || []).includes(teamId);
+}
+
+function toggleNdlFavorite(teamId) {
+  if (!state.ndlFavorites) state.ndlFavorites = [];
+  if (isNdlFavorite(teamId)) state.ndlFavorites = state.ndlFavorites.filter((id) => id !== teamId);
+  else state.ndlFavorites = [...state.ndlFavorites, teamId];
 }
 
 function filteredTeams() {
@@ -1187,6 +1236,7 @@ function render() {
 function renderRows() {
   const list = sortedTeams(filteredTeams());
   const pickState = activeLeague === "ndl" ? ndlDraftPickState() : null;
+  const ndlRanges = activeLeague === "ndl" ? ndlInputRanges() : null;
   updateSortHeaders();
   document.querySelectorAll(".ndl-board-col").forEach((cell) => cell.classList.toggle("hidden", activeLeague !== "ndl"));
 
@@ -1197,6 +1247,7 @@ function renderRows() {
       const rank = (state.boardOrder[activeLeague] || []).indexOf(team.id) + 1 || index + 1;
       const draftMarker = draftMarkerForTeam(team.id, pickState);
       const status = teamDraftStatus(team.id);
+      const favorite = activeLeague === "ndl" && isNdlFavorite(team.id);
       const bonusCell = `
         <select data-change="teamBonus" data-id="${team.id}">
           <option value="none"${shared.teamBonus === "none" ? " selected" : ""}>None</option>
@@ -1207,9 +1258,14 @@ function renderRows() {
         ${activeLeague === "ndl" ? `<span class="pill">NDL ${ndlAdjustment(team).toFixed(1)}</span>` : ""}
       `;
       return `
-        <tr class="${draftMarker ? `draft-pick-marker ${draftMarker.includes("Projected") ? "projected-pick-marker" : ""} ${draftMarker.includes("Worst") ? "worst-pick-marker" : ""}` : ""}">
-          <td class="number">${rank}</td>
-          <td>
+        <tr class="${favorite ? "favorite-team-row" : ""} ${draftMarker ? `draft-pick-marker ${draftMarker.includes("Projected") ? "projected-pick-marker" : ""} ${draftMarker.includes("Worst") ? "worst-pick-marker" : ""}` : ""}">
+          <td class="number" data-label="Rank">${rank}</td>
+          ${
+            activeLeague === "ndl"
+              ? `<td class="favorite-cell" data-label="Favorite"><button class="favorite-button ${favorite ? "active" : ""}" type="button" data-ndl-favorite="${team.id}" aria-label="${favorite ? "Remove" : "Add"} ${escapeHtml(team.displayName)} as draft favorite">${favorite ? "â˜…" : "â˜†"}</button></td>`
+              : ""
+          }
+          <td data-label="Team">
             <button class="team-cell ghost" data-open="${team.id}">
               <img class="logo" src="${escapeHtml(team.image)}" alt="" />
               <span>
@@ -1219,33 +1275,28 @@ function renderRows() {
               </span>
             </button>
           </td>
-          <td>
+          <td data-label="Avail">
             <label class="${status === "Yes" ? "available" : "taken"}">
               <input type="checkbox" data-change="available" data-id="${team.id}" ${status === "Yes" ? "checked" : ""} />
               ${status}
             </label>
           </td>
-          <td>${escapeHtml(team.conference)}</td>
-          <td>
-            <select data-change="conferenceTier" data-id="${team.id}">
-              ${["Power", "Tweener", "Group", "Independent"].map((tier) => `<option${teamTier(team) === tier ? " selected" : ""}>${tier}</option>`).join("")}
-            </select>
-          </td>
-          <td class="number rating-cell" ${ratingStyle(team.overall)}>${team.overall}</td>
-          <td class="number rating-cell" ${ratingStyle(team.offense)}>${team.offense}</td>
-          <td class="number rating-cell" ${ratingStyle(team.defense)}>${team.defense}</td>
-          <td class="number rating-cell" ${ratingStyle(baseTalent(team))}>${baseTalent(team).toFixed(1)}</td>
-          <td class="number rating rating-cell" ${ratingStyle(zRating(team))}>${zRating(team).toFixed(1)}</td>
+          <td class="conference-cell" data-label="Conf">${conferenceLogo(team.conference)}</td>
+          <td class="number rating-cell" data-label="OVR" ${ratingStyle(team.overall)}>${team.overall}</td>
+          <td class="number rating-cell" data-label="OFF" ${ratingStyle(team.offense)}>${team.offense}</td>
+          <td class="number rating-cell" data-label="DEF" ${ratingStyle(team.defense)}>${team.defense}</td>
+          <td class="number rating-cell" data-label="Talent" ${ratingStyle(baseTalent(team))}>${baseTalent(team).toFixed(1)}</td>
+          <td class="number rating rating-cell" data-label="Z Rating" ${ratingStyle(zRating(team))}>${zRating(team).toFixed(1)}</td>
           ${
             activeLeague === "ndl"
               ? `
-                <td><input class="board-small-input" data-change="ndlRiskRating" data-id="${team.id}" value="${escapeHtml(item.ndlRiskRating || "")}" placeholder="Risk" /></td>
-                <td><input class="board-small-input" data-change="ndlWinGoal" data-id="${team.id}" value="${escapeHtml(item.ndlWinGoal || "")}" placeholder="Goal" /></td>
+                <td data-label="NDL Risk">${fixedBoardNumber(item.ndlRiskRating, lowerIsBetterStyle(item.ndlRiskRating, ndlRanges.risk))}</td>
+                <td data-label="Win Goal">${fixedBoardNumber(item.ndlWinGoal, lowerIsBetterStyle(item.ndlWinGoal, ndlRanges.winGoal))}</td>
               `
               : ""
           }
-          <td>${bonusCell}</td>
-          <td>
+          <td data-label="Bonus">${bonusCell}</td>
+          <td data-label="Board">
             <div class="board-buttons">
               <button data-move="up" data-id="${team.id}" title="Move up">Up</button>
               <button data-move="down" data-id="${team.id}" title="Move down">Down</button>
@@ -2955,8 +3006,14 @@ els.rows.addEventListener("input", (event) => {
 });
 
 els.rows.addEventListener("click", (event) => {
+  const favorite = event.target.closest("[data-ndl-favorite]");
   const open = event.target.closest("[data-open]");
   const move = event.target.closest("[data-move]");
+  if (favorite) {
+    toggleNdlFavorite(favorite.dataset.ndlFavorite);
+    render();
+    return;
+  }
   if (open) openDialog(open.dataset.open);
   if (move) moveTeam(move.dataset.id, move.dataset.move);
 });
@@ -3105,4 +3162,5 @@ els.dialogBody.addEventListener("change", (event) => {
 render();
 refreshSyncControls();
 startAutoCloudSync();
+hasBooted = true;
 
