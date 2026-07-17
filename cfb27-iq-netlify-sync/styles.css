@@ -745,12 +745,76 @@ tr:hover td {
   box-shadow: inset 0 0 0 1px rgba(33, 23, 45, 0.04);
 }
 
+.favorite-cell {
+  text-align: center;
+}
+
+.favorite-button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  color: #9b8aa9;
+  background: white;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.favorite-button.active {
+  border-color: rgba(200, 150, 44, 0.55);
+  color: var(--gold);
+  background: #fff7dd;
+}
+
+.favorite-team-row td {
+  background: #fffaf0;
+}
+
+.conference-cell {
+  min-width: 92px;
+}
+
+.conference-logo {
+  display: block;
+  max-width: 76px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.conference-independent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 50px;
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 1px solid #cfd7e4;
+  border-radius: 6px;
+  color: #233044;
+  background: #f4f7fb;
+  font-size: 12px;
+  font-weight: 900;
+}
+
 .board-small-input {
   width: 76px;
   min-height: 32px;
   padding: 6px 8px;
   font-weight: 850;
   text-align: center;
+}
+
+.board-fixed-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
+  min-height: 32px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: var(--ink);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 0 0 1px rgba(33, 23, 45, 0.06);
 }
 
 .pill {
@@ -1910,6 +1974,184 @@ select.bonus-notable {
 }
 
 @media (max-width: 620px) {
+  body {
+    background: #f5f2f8;
+  }
+
+  .topbar {
+    padding: 18px 16px 14px;
+  }
+
+  .topbar h1 {
+    font-size: 26px;
+  }
+
+  .shell {
+    padding: 10px 10px 22px;
+  }
+
+  .app-shell {
+    gap: 10px;
+  }
+
+  .app-nav {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 8px;
+    box-shadow: 0 12px 26px rgba(35, 22, 54, 0.18);
+  }
+
+  .nav-title {
+    padding: 0 4px 8px;
+  }
+
+  .nav-section,
+  .league-nav-section {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .nav-section-label {
+    grid-column: 1 / -1;
+  }
+
+  .app-nav button {
+    min-height: 40px;
+    padding: 8px 9px;
+    font-size: 12px;
+  }
+
+  .nav-transfer {
+    display: none;
+  }
+
+  .nav-drafted {
+    padding-top: 0;
+  }
+
+  .nav-drafted-card,
+  .draft-position-card {
+    border-radius: 8px;
+  }
+
+  .drafted-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .table-wrap {
+    overflow: visible;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  table {
+    min-width: 0;
+    border-collapse: separate;
+    border-spacing: 0 10px;
+  }
+
+  thead {
+    display: none;
+  }
+
+  tbody,
+  tr,
+  td {
+    display: block;
+  }
+
+  tr {
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 8px 20px rgba(35, 22, 54, 0.08);
+  }
+
+  .favorite-team-row {
+    border-color: rgba(200, 150, 44, 0.45);
+    background: #fffaf0;
+  }
+
+  td {
+    display: grid;
+    grid-template-columns: 84px minmax(0, 1fr);
+    align-items: center;
+    gap: 9px;
+    padding: 7px 0;
+    border-bottom: 0;
+  }
+
+  td::before {
+    content: attr(data-label);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  td[data-label="Team"] {
+    grid-template-columns: 1fr;
+    padding-top: 0;
+  }
+
+  td[data-label="Team"]::before {
+    display: none;
+  }
+
+  .team-cell {
+    grid-template-columns: 42px minmax(0, 1fr);
+    width: 100%;
+    padding: 0;
+  }
+
+  .logo {
+    width: 42px;
+    height: 42px;
+  }
+
+  .team-name {
+    font-size: 16px;
+  }
+
+  .team-meta {
+    font-size: 11px;
+  }
+
+  .favorite-button {
+    width: 42px;
+    height: 38px;
+  }
+
+  .conference-logo {
+    max-width: 92px;
+    height: 30px;
+  }
+
+  .board-small-input {
+    width: 100%;
+  }
+
+  .board-fixed-number {
+    width: 100%;
+  }
+
+  .board-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .board-buttons button,
+  td select {
+    width: 100%;
+  }
+
   .summary-strip,
   .controls,
   .playbook-toolbar,
