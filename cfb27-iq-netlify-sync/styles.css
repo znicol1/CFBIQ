@@ -2068,9 +2068,11 @@ select.bonus-notable {
   }
 
   table {
+    width: 100%;
     min-width: 0;
+    table-layout: fixed;
     border-collapse: separate;
-    border-spacing: 0 10px;
+    border-spacing: 0 8px;
   }
 
   thead {
@@ -2083,11 +2085,17 @@ select.bonus-notable {
     display: block;
   }
 
+  tbody {
+    width: 100%;
+  }
+
   tr {
     display: grid;
+    width: 100%;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 6px;
-    padding: 9px;
+    gap: 5px;
+    overflow: hidden;
+    padding: 8px;
     border: 1px solid var(--line);
     border-radius: 8px;
     background: white;
@@ -2102,6 +2110,7 @@ select.bonus-notable {
   td {
     display: flex;
     min-width: 0;
+    overflow: hidden;
     flex-direction: column;
     justify-content: center;
     gap: 2px;
@@ -2112,8 +2121,9 @@ select.bonus-notable {
   td::before {
     content: attr(data-label);
     color: var(--muted);
-    font-size: 9px;
+    font-size: 8px;
     font-weight: 900;
+    line-height: 1;
     text-transform: uppercase;
   }
 
@@ -2147,7 +2157,7 @@ select.bonus-notable {
   td[data-label="OFF"],
   td[data-label="DEF"] {
     grid-row: 2;
-    min-height: 42px;
+    min-height: 39px;
   }
 
   td[data-label="Avail"] {
@@ -2182,20 +2192,27 @@ select.bonus-notable {
   td[data-label="Win Goal"],
   td[data-label="Board"] {
     grid-row: 3;
-    min-height: 42px;
+    min-height: 39px;
   }
 
   td.rating-cell,
   td[data-label="Talent"],
   td[data-label="Z Rating"] {
     border-radius: 6px;
-    font-size: 16px;
+    font-size: 15px;
     line-height: 1.1;
   }
 
   td[data-label="Talent"].rating-cell,
   td[data-label="Z Rating"].rating-cell {
-    padding: 5px 2px;
+    padding: 4px 2px;
+  }
+
+  td[data-label="Talent"]::before,
+  td[data-label="Z Rating"]::before,
+  td[data-label="NDL Risk"]::before,
+  td[data-label="Win Goal"]::before {
+    margin-bottom: 1px;
   }
 
   td[data-label="Talent"] {
@@ -2239,29 +2256,32 @@ select.bonus-notable {
   }
 
   td[data-label="Rank"] {
-    font-size: 17px;
+    font-size: 16px;
   }
 
   .team-cell {
-    grid-template-columns: 34px minmax(0, 1fr);
+    grid-template-columns: 31px minmax(0, 1fr);
+    gap: 6px;
     width: 100%;
     padding: 0;
   }
 
   .logo {
-    width: 34px;
-    height: 34px;
+    width: 31px;
+    height: 31px;
   }
 
   .team-name {
     overflow: hidden;
-    font-size: 14px;
+    font-size: 13px;
+    line-height: 1.05;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   .team-meta {
-    font-size: 10px;
+    font-size: 9px;
+    line-height: 1.05;
   }
 
   .favorite-button {
@@ -2271,11 +2291,24 @@ select.bonus-notable {
   }
 
   .conference-logo {
-    width: auto;
-    max-width: 48px;
-    height: auto;
-    max-height: 24px;
+    width: 42px !important;
+    max-width: 42px !important;
+    height: 20px !important;
+    max-height: 20px !important;
     margin: 0 auto;
+    object-fit: contain;
+  }
+
+  .conference-cell {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .conference-independent {
+    min-width: 0;
+    min-height: 20px;
+    padding: 2px 5px;
+    font-size: 9px;
   }
 
   .board-small-input {
@@ -2285,9 +2318,9 @@ select.bonus-notable {
   .board-fixed-number {
     width: 100%;
     min-width: 0;
-    min-height: 30px;
-    padding: 5px 4px;
-    font-size: 15px;
+    min-height: 28px;
+    padding: 4px 3px;
+    font-size: 14px;
   }
 
   .board-buttons {
@@ -2302,18 +2335,40 @@ select.bonus-notable {
   }
 
   .board-buttons button {
-    min-height: 26px;
+    position: relative;
+    min-height: 24px;
     padding: 4px 2px;
-    font-size: 12px;
+    overflow: hidden;
+    color: transparent;
+    font-size: 0;
+  }
+
+  .board-buttons button::after {
+    color: var(--purple-dark);
+    font-size: 16px;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .board-buttons button[data-move="up"]::after {
+    content: "^";
+  }
+
+  .board-buttons button[data-move="down"]::after {
+    content: "v";
   }
 
   td[data-label="Avail"] label {
-    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 12px;
   }
 
   td[data-label="Avail"] input {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
   }
 
   td[data-label="Bonus"] .pill {
