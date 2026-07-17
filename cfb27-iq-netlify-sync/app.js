@@ -1262,7 +1262,7 @@ function renderRows() {
           <td class="number" data-label="Rank">${rank}</td>
           ${
             activeLeague === "ndl"
-              ? `<td class="favorite-cell" data-label="Favorite"><button class="favorite-button ${favorite ? "active" : ""}" type="button" data-ndl-favorite="${team.id}" aria-label="${favorite ? "Remove" : "Add"} ${escapeHtml(team.displayName)} as draft favorite">${favorite ? "â˜…" : "â˜†"}</button></td>`
+              ? `<td class="favorite-cell" data-label="Favorite"><button class="favorite-button ${favorite ? "active" : ""}" type="button" data-ndl-favorite="${team.id}" aria-label="${favorite ? "Remove" : "Add"} ${escapeHtml(team.displayName)} as draft favorite">${favorite ? "&#9733;" : "&#9734;"}</button></td>`
               : ""
           }
           <td data-label="Team">
