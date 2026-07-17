@@ -1,6 +1,7 @@
 const STORAGE_KEY = "cfb27-team-selection-v1";
 const SYNC_CODE_KEY = `${STORAGE_KEY}-sync-code`;
 const SYNC_UPDATED_KEY = `${STORAGE_KEY}-cloud-updated-at`;
+const SYNC_LOCAL_EDIT_KEY = `${STORAGE_KEY}-local-edit-at`;
 const CLOUD_SYNC_ENDPOINT = "/api/cfb27-state";
 const CLOUD_SYNC_POLL_MS = 10000;
 const DEFAULT_SYNC_CODE = "cfb27sync";
@@ -545,6 +546,7 @@ function normalizeSituations(situations) {
 function saveState() {
   state.activeLeague = activeLeague;
   state.activeView = activeView;
+  if (!isApplyingRemoteState) markLocalEdited();
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   scheduleCloudSave();
 }
@@ -559,6 +561,25 @@ function lastCloudUpdatedAt() {
 
 function setLastCloudUpdatedAt(updatedAt) {
   if (updatedAt) localStorage.setItem(SYNC_UPDATED_KEY, updatedAt);
+}
+
+function lastLocalEditAt() {
+  return Number(localStorage.getItem(SYNC_LOCAL_EDIT_KEY) || 0);
+}
+
+function markLocalEdited() {
+  localStorage.setItem(SYNC_LOCAL_EDIT_KEY, String(Date.now()));
+}
+
+function clearLocalEdited() {
+  localStorage.removeItem(SYNC_LOCAL_EDIT_KEY);
+}
+
+function hasUnsyncedLocalChange() {
+  const localEdit = lastLocalEditAt();
+  if (!localEdit) return false;
+  const cloudUpdated = Date.parse(lastCloudUpdatedAt());
+  return !Number.isFinite(cloudUpdated) || localEdit > cloudUpdated;
 }
 
 function isNewerCloudSave(updatedAt) {
@@ -634,11 +655,16 @@ async function pushCloudState(options = {}) {
   const payload = await cloudStateRequest("PUT", { state });
   hasPendingCloudSave = false;
   setLastCloudUpdatedAt(payload.updatedAt);
+  clearLocalEdited();
   setSyncStatus(`Auto synced ${payload.updatedAt ? new Date(payload.updatedAt).toLocaleTimeString() : ""}`, "good");
 }
 
 async function checkCloudState(options = {}) {
   if (!syncCode() || isApplyingRemoteState || hasPendingCloudSave) return;
+  if (hasUnsyncedLocalChange()) {
+    await pushCloudState({ quiet: true });
+    return;
+  }
   const payload = await cloudStateRequest("GET");
   if (!payload.state) {
     if (options.pushIfEmpty) await pushCloudState({ quiet: true });
